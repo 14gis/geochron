@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>GeoChron Tool – Simplified</title>
+  <title>GeoChron Tool – Enhanced</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@7.3.0/ol.css">
   <style>
     html, body, #map {
@@ -11,55 +11,113 @@
       width: 100%;
       height: 100%;
     }
+    .controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 5px;
+      z-index: 1000;
+      font-family: sans-serif;
+    }
+    .controls select {
+      margin-bottom: 5px;
+    }
   </style>
 </head>
 <body>
+  <div class="controls">
+    <label>Base Layer:</label><br>
+    <select id="baseLayerSelect">
+      <option value="osm">OpenStreetMap</option>
+      <option value="topo">OpenTopoMap</option>
+      <option value="satellite">Satellite</option>
+    </select><br>
+    <button id="locateBtn">Use GPS</button>
+  </div>
   <div id="map"></div>
+
   <script src="https://cdn.jsdelivr.net/npm/ol@7.3.0/dist/ol.js"></script>
   <script>
-    // Initialize the OpenLayers map using the global 'ol' object
-    const map = new ol.Map({
-      target: 'map',
-      layers: [
-        new ol.layer.Tile({
-          source: new ol.source.OSM()
-        })
-      ],
-      view: new ol.View({
-        center: ol.proj.fromLonLat([10.45, 51.16]),  // Centered on Germany
-        zoom: 6
-      })
-    });
-
-    // Add additional layers (e.g., Topo, Satellite, Geology)
+    const osmLayer = new ol.layer.Tile({ source: new ol.source.OSM(), visible: true });
     const topoLayer = new ol.layer.Tile({
-      source: new ol.source.XYZ({
-        url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png'
-      }),
+      source: new ol.source.XYZ({ url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png' }),
       visible: false
     });
-    map.addLayer(topoLayer);
-
     const satelliteLayer = new ol.layer.Tile({
-      source: new ol.source.XYZ({
-        url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'
-      }),
+      source: new ol.source.XYZ({ url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}' }),
       visible: false
     });
-    map.addLayer(satelliteLayer);
 
     const geologyLayer = new ol.layer.Tile({
       source: new ol.source.TileWMS({
         url: 'https://services.bgr.de/wms/geologie/gk1000/',
-        params: {
-          'LAYERS': 'GK1000',
-          'TILED': true
-        },
+        params: { 'LAYERS': 'GK1000', 'TILED': true },
         serverType: 'geoserver'
       }),
       visible: true
     });
-    map.addLayer(geologyLayer);
+
+    const view = new ol.View({
+      center: ol.proj.fromLonLat([10.45, 51.16]),
+      zoom: 6
+    });
+
+    const map = new ol.Map({
+      target: 'map',
+      layers: [osmLayer, topoLayer, satelliteLayer, geologyLayer],
+      view: view
+    });
+
+    // Handle base layer switching
+    document.getElementById('baseLayerSelect').addEventListener('change', function () {
+      const val = this.value;
+      osmLayer.setVisible(val === 'osm');
+      topoLayer.setVisible(val === 'topo');
+      satelliteLayer.setVisible(val === 'satellite');
+    });
+
+    // Marker setup
+    const markerLayer = new ol.layer.Vector({
+      source: new ol.source.Vector()
+    });
+    map.addLayer(markerLayer);
+
+    const markerStyle = new ol.style.Style({
+      image: new ol.style.Circle({
+        radius: 6,
+        fill: new ol.style.Fill({ color: 'red' }),
+        stroke: new ol.style.Stroke({ color: 'white', width: 2 })
+      })
+    });
+
+    function setMarker(lon, lat) {
+      markerLayer.getSource().clear();
+      const point = new ol.geom.Point(ol.proj.fromLonLat([lon, lat]));
+      const feature = new ol.Feature(point);
+      feature.setStyle(markerStyle);
+      markerLayer.getSource().addFeature(feature);
+      view.animate({ center: ol.proj.fromLonLat([lon, lat]), zoom: 14 });
+    }
+
+    // Use GPS
+    document.getElementById('locateBtn').addEventListener('click', function () {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+          setMarker(position.coords.longitude, position.coords.latitude);
+        }, function (err) {
+          alert('Geolocation failed: ' + err.message);
+        });
+      } else {
+        alert('Geolocation not available');
+      }
+    });
+
+    // Manual marker by click
+    map.on('click', function (evt) {
+      const coords = ol.proj.toLonLat(evt.coordinate);
+      setMarker(coords[0], coords[1]);
+    });
   </script>
 </body>
 </html>
