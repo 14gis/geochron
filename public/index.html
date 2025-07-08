@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>GeoChron Tool – Enhanced</title>
+  <title>GeoChron Tool – Usability Boost</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@7.3.0/ol.css">
   <style>
     html, body, #map {
@@ -15,13 +15,22 @@
       position: absolute;
       top: 10px;
       right: 10px;
-      background: rgba(255, 255, 255, 0.8);
-      padding: 5px;
-      z-index: 1000;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 6px;
       font-family: sans-serif;
+      font-size: 14px;
+      z-index: 1000;
     }
-    .controls select {
-      margin-bottom: 5px;
+    .coord-display {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      padding: 4px 8px;
+      font-family: monospace;
+      font-size: 13px;
+      z-index: 1001;
     }
   </style>
 </head>
@@ -35,6 +44,7 @@
     </select><br>
     <button id="locateBtn">Use GPS</button>
   </div>
+  <div class="coord-display" id="coordDisplay">Lon: –, Lat: –</div>
   <div id="map"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/ol@7.3.0/dist/ol.js"></script>
@@ -69,7 +79,6 @@
       view: view
     });
 
-    // Handle base layer switching
     document.getElementById('baseLayerSelect').addEventListener('change', function () {
       const val = this.value;
       osmLayer.setVisible(val === 'osm');
@@ -77,10 +86,7 @@
       satelliteLayer.setVisible(val === 'satellite');
     });
 
-    // Marker setup
-    const markerLayer = new ol.layer.Vector({
-      source: new ol.source.Vector()
-    });
+    const markerLayer = new ol.layer.Vector({ source: new ol.source.Vector() });
     map.addLayer(markerLayer);
 
     const markerStyle = new ol.style.Style({
@@ -91,20 +97,29 @@
       })
     });
 
-    function setMarker(lon, lat) {
+    function setMarker(lon, lat, keepView = true) {
+      const oldCenter = map.getView().getCenter();
+      const oldZoom = map.getView().getZoom();
+
       markerLayer.getSource().clear();
       const point = new ol.geom.Point(ol.proj.fromLonLat([lon, lat]));
       const feature = new ol.Feature(point);
       feature.setStyle(markerStyle);
       markerLayer.getSource().addFeature(feature);
-      view.animate({ center: ol.proj.fromLonLat([lon, lat]), zoom: 14 });
+
+      if (!keepView) {
+        map.getView().animate({ center: ol.proj.fromLonLat([lon, lat]), zoom: 14 });
+      } else {
+        map.getView().setCenter(oldCenter);
+        map.getView().setZoom(oldZoom);
+      }
     }
 
-    // Use GPS
     document.getElementById('locateBtn').addEventListener('click', function () {
       if ('geolocation' in navigator) {
         navigator.geolocation.getCurrentPosition(function (position) {
-          setMarker(position.coords.longitude, position.coords.latitude);
+          setMarker(position.coords.longitude, position.coords.latitude, false);
+          updateCoordDisplay(position.coords.longitude, position.coords.latitude);
         }, function (err) {
           alert('Geolocation failed: ' + err.message);
         });
@@ -113,11 +128,16 @@
       }
     });
 
-    // Manual marker by click
     map.on('click', function (evt) {
       const coords = ol.proj.toLonLat(evt.coordinate);
-      setMarker(coords[0], coords[1]);
+      setMarker(coords[0], coords[1], true);
+      updateCoordDisplay(coords[0], coords[1]);
     });
+
+    function updateCoordDisplay(lon, lat) {
+      document.getElementById('coordDisplay').innerText = 
+        'Lon: ' + lon.toFixed(5) + ', Lat: ' + lat.toFixed(5);
+    }
   </script>
 </body>
 </html>
