@@ -14,7 +14,7 @@
     .controls {
       position: absolute;
       top: 10px;
-      left: 10px;
+      right: 10px;
       background: rgba(255,255,255,0.9);
       padding: 6px;
       font-family: sans-serif;
@@ -61,14 +61,17 @@
       visible: false
     });
 
-    const geologyLayer = new ol.layer.Tile({
-      source: new ol.source.TileWMS({
-        url: 'https://services.bgr.de/wms/geologie/gk1000/',
-        params: { 'LAYERS': 'GK1000', 'TILED': true },
-        serverType: 'geoserver'
+    const geologyLayer = new ol.layer.Image({
+      source: new ol.source.ImageArcGISRest({
+        url: 'https://services.bgr.de/arcgis/rest/services/geologie/guek250/MapServer',
+        params: {
+          layers: 'show:1,2,3,4' // Beispiel: Grenzen + geologische Einheiten
+        },
+        ratio: 1
       }),
-      visible: true
+      opacity: 0.7
     });
+
 
     const view = new ol.View({
       center: ol.proj.fromLonLat([10.45, 51.16]),
