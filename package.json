@@ -1,0 +1,17 @@
+{
+  "name": "geochron",
+  "version": "1.0.0",
+  "description": "GeoChron – determine your location in time on Earth.",
+  "main": "index.js",
+  "scripts": {
+    "build": "make assets",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "ol": "7.3.0"
+  }
+}
