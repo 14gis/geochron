@@ -44,7 +44,17 @@
     </select><br><br>
 
     <label><input type="checkbox" id="geologyToggle" checked> GK1000 (BGR)</label><br>
-    <button id="locateBtn">Use GPS</button>
+    <button id="locateBtn">Use GPS</button><br><br>
+
+    <strong>Coordinates:</strong><br>
+    <input type="text" id="latInput" placeholder="Lat" size="8">
+    <input type="text" id="lonInput" placeholder="Lon" size="8">
+    <button id="coordBtn">Go</button><br><br>
+
+    <strong>Search place:</strong><br>
+    <input type="text" id="searchInput" placeholder="e.g. Berlin">
+    <button id="searchBtn">Search</button>
+    <ul id="searchResults" style="list-style:none;padding-left:0;margin-top:4px;"></ul>
   </div>
   <div class="coord-display" id="coordDisplay">Lon: –, Lat: –, Elev: –</div>
   <div id="map"></div>
@@ -107,9 +117,8 @@
       })
     });
 
-    function setMarker(lon, lat, keepView = true) {
-      const oldCenter = map.getView().getCenter();
-      const oldZoom = map.getView().getZoom();
+    function setMarker(lon, lat, options = {}) {
+      const opts = Object.assign({ center: false, zoom: null }, options);
 
       markerLayer.getSource().clear();
       const point = new ol.geom.Point(ol.proj.fromLonLat([lon, lat]));
@@ -117,14 +126,18 @@
       feature.setStyle(markerStyle);
       markerLayer.getSource().addFeature(feature);
 
-      if (!keepView) {
-        map.getView().animate({ center: ol.proj.fromLonLat([lon, lat]), zoom: 14 });
-      } else {
-        map.getView().setCenter(oldCenter);
-        map.getView().setZoom(oldZoom);
+      if (opts.center) {
+        const view = map.getView();
+        const currentZoom = view.getZoom();
+        view.setCenter(ol.proj.fromLonLat([lon, lat]));
+        view.setZoom(opts.zoom !== null ? opts.zoom : currentZoom);
       }
 
       fetchElevation(lon, lat);
+
+      if (opts.center) {
+        location.hash = `lat=${lat}&lon=${lon}`;
+      }
     }
 
     function fetchElevation(lon, lat) {
@@ -152,7 +165,7 @@
         navigator.geolocation.getCurrentPosition(function (position) {
           const lon = position.coords.longitude;
           const lat = position.coords.latitude;
-          setMarker(lon, lat, false);
+          setMarker(lon, lat, { center: true, zoom: 14 });
         }, function (err) {
           alert('Geolocation failed: ' + err.message);
         });
@@ -164,7 +177,62 @@
     // Manual click
     map.on('click', function (evt) {
       const coords = ol.proj.toLonLat(evt.coordinate);
-      setMarker(coords[0], coords[1], true);
+      setMarker(coords[0], coords[1], { center: true });
+    });
+
+    function parseCoords(latStr, lonStr) {
+      const lat = parseFloat(latStr);
+      const lon = parseFloat(lonStr);
+      if (isNaN(lat) || isNaN(lon)) return null;
+
+      if (Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+        const ll = ol.proj.toLonLat([lon, lat], 'EPSG:3857');
+        return { lat: ll[1], lon: ll[0] };
+      }
+      return { lat: lat, lon: lon };
+    }
+
+    document.getElementById('coordBtn').addEventListener('click', function () {
+      const latStr = document.getElementById('latInput').value;
+      const lonStr = document.getElementById('lonInput').value;
+      const c = parseCoords(latStr, lonStr);
+      if (!c) {
+        alert('Invalid coordinates');
+        return;
+      }
+      setMarker(c.lon, c.lat, { center: true });
+    });
+
+    document.getElementById('searchBtn').addEventListener('click', function () {
+      const q = document.getElementById('searchInput').value.trim();
+      const list = document.getElementById('searchResults');
+      list.innerHTML = '';
+      if (!q) return;
+      fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q))
+        .then(r => r.json())
+        .then(results => {
+          results.slice(0, 5).forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = item.display_name;
+            li.style.cursor = 'pointer';
+            li.addEventListener('click', () => {
+              setMarker(parseFloat(item.lon), parseFloat(item.lat), { center: true });
+              list.innerHTML = '';
+            });
+            list.appendChild(li);
+          });
+        });
+    });
+
+    window.addEventListener('load', () => {
+      if (location.hash.startsWith('#')) {
+        const params = new URLSearchParams(location.hash.slice(1));
+        const lat = parseFloat(params.get('lat'));
+        const lon = parseFloat(params.get('lon'));
+        if (!isNaN(lat) && !isNaN(lon)) {
+          setMarker(lon, lat, { center: true });
+        }
+      }
     });
   </script>
 </body>
