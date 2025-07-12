@@ -247,7 +247,8 @@
         navigator.geolocation.getCurrentPosition(function (position) {
           const lon = position.coords.longitude;
           const lat = position.coords.latitude;
-          setMarker(lon, lat, { center: true, zoom: 14 });
+          document.getElementById('identifyModal').classList.add('hidden');
+          setMarker(lon, lat, { center: true, zoom: 10 });
         }, function (err) {
           alert('Geolocation failed: ' + err.message);
         });
@@ -259,7 +260,8 @@
     // Manual click
     map.on('click', function (evt) {
       const coords = ol.proj.toLonLat(evt.coordinate);
-      setMarker(coords[0], coords[1], { center: true });
+      document.getElementById('identifyModal').classList.add('hidden');
+      setMarker(coords[0], coords[1], { center: false });
       identifyPoint(coords[0], coords[1]);
     });
 
@@ -283,7 +285,8 @@
         alert('Invalid coordinates');
         return;
       }
-      setMarker(c.lon, c.lat, { center: true, zoom: 14 });
+      document.getElementById('identifyModal').classList.add('hidden');
+      setMarker(c.lon, c.lat, { center: true, zoom: 10 });
     });
 
     document.getElementById('searchBtn').addEventListener('click', function () {
@@ -299,7 +302,8 @@
             li.textContent = item.display_name;
             li.style.cursor = 'pointer';
             li.addEventListener('click', () => {
-              setMarker(parseFloat(item.lon), parseFloat(item.lat), { center: true, zoom: 14 });
+              document.getElementById('identifyModal').classList.add('hidden');
+              setMarker(parseFloat(item.lon), parseFloat(item.lat), { center: true, zoom: 10 });
               list.innerHTML = '';
             });
             list.appendChild(li);
