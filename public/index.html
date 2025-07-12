@@ -33,31 +33,27 @@
       z-index: 1001;
     }
     .modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 2000;
+      position: absolute;
+      top: 120px; /* will be adjusted by JS */
+      right: 10px;
+      background: rgba(255,255,255,0.95);
+      border: 1px solid #999;
+      padding: 10px;
+      max-width: 300px;
+      max-height: 40%;
+      overflow-y: auto;
+      font-family: sans-serif;
+      font-size: 13px;
+      z-index: 1000;
     }
     .modal.hidden { display: none; }
     .modal-content {
       position: relative;
-      background: #fff;
-      padding: 20px;
-      max-height: 80%;
-      overflow-y: auto;
-      min-width: 260px;
-      font-family: sans-serif;
     }
     .modal-close {
       position: absolute;
-      top: 5px;
-      right: 10px;
+      top: 2px;
+      right: 6px;
       cursor: pointer;
       font-weight: bold;
     }
@@ -311,16 +307,22 @@
         });
     });
 
+    function updateIdentifyPosition() {
+      const controls = document.querySelector('.controls');
+      const modal = document.getElementById('identifyModal');
+      if (controls && modal) {
+        modal.style.top = (controls.offsetTop + controls.offsetHeight + 10) + 'px';
+      }
+    }
+
     document.getElementById('identifyClose').addEventListener('click', () => {
       document.getElementById('identifyModal').classList.add('hidden');
     });
-    document.getElementById('identifyModal').addEventListener('click', (e) => {
-      if (e.target === document.getElementById('identifyModal')) {
-        document.getElementById('identifyModal').classList.add('hidden');
-      }
-    });
+
+    window.addEventListener('resize', updateIdentifyPosition);
 
     window.addEventListener('load', () => {
+      updateIdentifyPosition();
       if (location.hash.startsWith('#')) {
         const params = new URLSearchParams(location.hash.slice(1));
         const lat = parseFloat(params.get('lat'));
