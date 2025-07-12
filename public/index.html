@@ -165,7 +165,9 @@
         const view = map.getView();
         const currentZoom = view.getZoom();
         view.setCenter(ol.proj.fromLonLat([lon, lat]));
-        view.setZoom(opts.zoom !== null ? opts.zoom : currentZoom);
+        if (opts.zoom !== null && currentZoom < opts.zoom) {
+          view.setZoom(opts.zoom);
+        }
       }
 
       fetchElevation(lon, lat);
@@ -285,7 +287,7 @@
         alert('Invalid coordinates');
         return;
       }
-      setMarker(c.lon, c.lat, { center: true });
+      setMarker(c.lon, c.lat, { center: true, zoom: 14 });
     });
 
     document.getElementById('searchBtn').addEventListener('click', function () {
@@ -301,7 +303,7 @@
             li.textContent = item.display_name;
             li.style.cursor = 'pointer';
             li.addEventListener('click', () => {
-              setMarker(parseFloat(item.lon), parseFloat(item.lat), { center: true });
+              setMarker(parseFloat(item.lon), parseFloat(item.lat), { center: true, zoom: 14 });
               list.innerHTML = '';
             });
             list.appendChild(li);
