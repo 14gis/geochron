@@ -209,9 +209,11 @@
           let html = `<strong>${item.layerName}</strong> (ID ${item.layerId})`;
           if (item.attributes) {
             const lines = [];
-            ['value', 'text', 'name'].forEach(k => {
-              if (item.attributes[k]) lines.push(`${k}: ${item.attributes[k]}`);
-            });
+
+            for (const [key, val] of Object.entries(item.attributes)) {
+              lines.push(`<strong>${key}</strong>: ${val}`);
+            }
+
             if (lines.length) html += '<br>' + lines.join('<br>');
           }
           li.innerHTML = html;
